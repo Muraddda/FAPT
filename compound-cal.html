@@ -1,0 +1,328 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compounding Wealth Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+        }
+
+        body {
+            background-color: #F5F6F5;
+            color: #333333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #00897B;
+            text-decoration: none;
+            transition: color 0.3s;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .back-link:hover {
+            color: #005566;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #005566;
+            margin-bottom: 28px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #005566;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .input-group > div {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333333;
+            letter-spacing: -0.01em;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 89, 102, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            background: rgba(245, 246, 245, 0.7);
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #005566;
+            background: #FFFFFF;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(180deg, #005566 0%, #004B58 100%);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 24px;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 89, 102, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .results {
+            margin-top: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-metrics {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            flex: 1;
+            text-align: center;
+        }
+
+        .metric p {
+            font-size: 36px;
+            font-weight: 700;
+            color: #00897B;
+            letter-spacing: -0.03em;
+            margin-bottom: 8px;
+        }
+
+        .metric span {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333333;
+            letter-spacing: -0.01em;
+        }
+
+        @media (max-width: 414px) {
+            .container {
+                padding: 24px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            h3 {
+                font-size: 20px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .result-metrics {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .metric p {
+                font-size: 28px;
+            }
+
+            button {
+                font-size: 16px;
+                padding: 12px;
+            }
+
+            input[type="number"], select {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .back-link {
+                font-size: 12px;
+                top: 12px;
+                left: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">Back to Home</a>
+        <div class="tab-content" id="wealth-calculator">
+            <h2>Compounding Wealth Calculator</h2>
+            <div class="section input-group">
+                <div>
+                    <label>Initial Capital ($)</label>
+                    <input type="number" id="initial-capital" min="0" step="0.01">
+                    <label>Annual Investment ($)</label>
+                    <input type="number" id="annual-investment" min="0" step="0.01">
+                </div>
+                <div>
+                    <label>Average Annual ROI (%)</label>
+                    <input type="number" id="roi" min="0" value="6" step="0.01">
+                    <label>Investment Period (Years)</label>
+                    <input type="number" id="investment-period" value="20" min="1" step="1">
+                </div>
+            </div>
+            <button onclick="calculateWealth()">Calculate</button>
+            <div class="section results" id="wealth-results">
+                <h3>Wealth Results</h3>
+                <div id="wealth-metrics">
+                    <div class="result-metrics">
+                        <div class="metric">
+                            <p id="future-wealth">$0.00</p>
+                            <span>Future Wealth</span>
+                        </div>
+                        <div class="metric">
+                            <p id="total-roi">0.00%</p>
+                            <span>Total ROI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function calculateWealth() {
+            const initialCapital = parseFloat(document.getElementById('initial-capital').value) || 0;
+            const annualInvestment = parseFloat(document.getElementById('annual-investment').value) || 0;
+            let roi = parseFloat(document.getElementById('roi').value) / 100 || 0;
+            const years = parseInt(document.getElementById('investment-period').value) || 1;
+
+            let futureValue = initialCapital;
+            const monthlyROI = roi / 12;
+            const months = years * 12;
+            const monthlyContribution = annualInvestment / 12;
+
+            for (let i = 0; i < months; i++) {
+                futureValue = futureValue * (1 + monthlyROI) + monthlyContribution;
+            }
+
+            const totalInvested = initialCapital + annualInvestment * years;
+            const totalROI = totalInvested > 0 ? ((futureValue - totalInvested) / totalInvested * 100) : 0;
+
+            const formattedFutureValue = futureValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+            document.getElementById('future-wealth').textContent = `$${formattedFutureValue}`;
+            document.getElementById('total-roi').textContent = `${totalROI.toFixed(2)}%`;
+
+            document.getElementById('wealth-results').classList.add('active');
+        }
+    </script>
+</body>
+</html>

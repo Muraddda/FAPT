@@ -1,0 +1,307 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCA Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+        }
+
+        body {
+            background-color: #F5F6F5;
+            color: #333333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #00897B;
+            text-decoration: none;
+            transition: color 0.3s;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .back-link:hover {
+            color: #005566;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #005566;
+            margin-bottom: 28px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333333;
+            letter-spacing: -0.01em;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 89, 102, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            background: rgba(245, 246, 245, 0.7);
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #005566;
+            background: #FFFFFF;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(180deg, #005566 0%, #004B58 100%);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 24px;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 89, 102, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .results {
+            margin-top: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-metrics {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            flex: 1;
+            text-align: center;
+        }
+
+        .metric p {
+            font-size: 36px;
+            font-weight: 700;
+            color: #00897B;
+            letter-spacing: -0.03em;
+            margin-bottom: 8px;
+        }
+
+        .metric span {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333333;
+            letter-spacing: -0.01em;
+        }
+
+        @media (max-width: 414px) {
+            .container {
+                padding: 24px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            .result-metrics {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .metric p {
+                font-size: 28px;
+            }
+
+            button {
+                font-size: 16px;
+                padding: 12px;
+            }
+
+            input[type="number"], input[type="text"] {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .back-link {
+                font-size: 12px;
+                top: 12px;
+                left: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">Back to Home</a>
+        <div class="tab-content" id="dca-calculator">
+            <h2>DCA Calculator</h2>
+            <div class="section">
+                <label>Monthly Investment ($)</label>
+                <input type="number" id="monthly-investment" min="0" step="0.01">
+            </div>
+            <div class="section">
+                <label>Number of Months</label>
+                <input type="number" id="number-of-months" min="1" step="1">
+            </div>
+            <div class="section">
+                <label>Stock Ticker</label>
+                <input type="text" id="stock-ticker" placeholder="e.g., AAPL">
+            </div>
+            <button onclick="calculateDCA()">Calculate</button>
+            <div class="section results" id="dca-results">
+                <h3>Results</h3>
+                <div class="result-metrics">
+                    <div class="metric">
+                        <p id="total-shares">0</p>
+                        <span>Total Shares Owned</span>
+                    </div>
+                    <div class="metric">
+                        <p id="avg-price">$0.00</p>
+                        <span>Average Purchase Price</span>
+                    </div>
+                    <div class="metric">
+                        <p id="portfolio-value">$0.00</p>
+                        <span>Total Portfolio Value</span>
+                    </div>
+                </div>
+                <div class="result-metrics">
+                    <div class="metric">
+                        <p id="total-invested">$0.00</p>
+                        <span>Total Invested</span>
+                    </div>
+                    <div class="metric">
+                        <p id="rate-of-return">0.00%</p>
+                        <span>Rate of Return</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function calculateDCA() {
+            // Placeholder: Real implementation would fetch stock data
+            const monthlyInvestment = parseFloat(document.getElementById('monthly-investment').value) || 0;
+            const months = parseInt(document.getElementById('number-of-months').value) || 1;
+            const stockTicker = document.getElementById('stock-ticker').value.trim() || 'N/A';
+
+            // Mock calculation
+            const totalInvested = monthlyInvestment * months;
+            const totalShares = totalInvested / 100; // Mock share price
+            const avgPrice = 100; // Mock average price
+            const portfolioValue = totalShares * 120; // Mock current price
+            const rateOfReturn = totalInvested > 0 ? ((portfolioValue - totalInvested) / totalInvested * 100) : 0;
+
+            document.getElementById('total-shares').textContent = totalShares.toFixed(2);
+            document.getElementById('avg-price').textContent = `$${avgPrice.toFixed(2)}`;
+            document.getElementById('portfolio-value').textContent = `$${portfolioValue.toFixed(2)}`;
+            document.getElementById('total-invested').textContent = `$${totalInvested.toFixed(2)}`;
+            document.getElementById('rate-of-return').textContent = `${rateOfReturn.toFixed(2)}%`;
+
+            document.getElementById('dca-results').classList.add('active');
+        }
+    </script>
+</body>
+</html>

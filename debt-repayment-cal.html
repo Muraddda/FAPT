@@ -1,0 +1,419 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Payoff Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+        }
+
+        body {
+            background-color: #F5F6F5;
+            color: #333333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #00897B;
+            text-decoration: none;
+            transition: color 0.3s;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .back-link:hover {
+            color: #005566;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #005566;
+            margin-bottom: 28px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #005566;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .card-list > div {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .card-list input, .card-list button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        label {
+            display: block;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333333;
+            letter-spacing: -0.01em;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 89, 102, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            background: rgba(245, 246, 245, 0.7);
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #005566;
+            background: #FFFFFF;
+        }
+
+        .card-list button {
+            padding: 8px 12px;
+            background: linear-gradient(180deg, #FF4D4F 0%, #D9363E 100%);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: auto;
+            min-width: 80px;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .card-list button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+        }
+
+        .card-list button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(180deg, #005566 0%, #004B58 100%);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 24px;
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 89, 102, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .download-buttons button {
+            flex: 1;
+            padding: 10px;
+            font-size: 15px;
+            background: linear-gradient(180deg, #00897B 0%, #006B5F 100%);
+            min-height: 44px;
+            line-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .results {
+            margin-top: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        #payoff-details {
+            text-align: left;
+            font-size: 15px;
+            color: #333333;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 414px) {
+            .container {
+                padding: 24px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            h3 {
+                font-size: 20px;
+            }
+
+            .card-list > div {
+                flex-direction: column;
+            }
+
+            .card-list input, .card-list button {
+                min-width: 100%;
+            }
+
+            .download-buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            button {
+                font-size: 16px;
+                padding: 12px;
+            }
+
+            .card-list button {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+
+            input[type="text"], input[type="number"] {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .back-link {
+                font-size: 12px;
+                top: 12px;
+                left: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">Back to Home</a>
+        <div class="tab-content" id="debt-payoff">
+            <h2>Credit Card Payoff Calculator</h2>
+            <div class="section card-list" id="card-list">
+                <div>
+                    <input type="text" placeholder="Card Name">
+                    <input type="number" placeholder="Balance ($)" min="0" step="0.01" class="card-balance">
+                    <input type="number" placeholder="APR (%)" min="0" step="0.01" class="card-apr">
+                    <input type="number" placeholder="Minimum Payment ($)" min="0" step="0.01" class="card-min-payment">
+                    <button onclick="removeCard(this)">Remove</button>
+                </div>
+            </div>
+            <button onclick="addCard()">Add a Card</button>
+            <div class="section">
+                <label>Monthly Budget ($)</label>
+                <input type="number" id="monthly-budget" min="0" step="0.01">
+            </div>
+            <button onclick="calculatePayoff()">Calculate</button>
+            <div class="section results" id="payoff-summary">
+                <h3>Payoff Summary</h3>
+                <div id="payoff-details">
+                    Payoff summary will appear here.
+                </div>
+                <div class="download-buttons">
+                    <button onclick="downloadSummary('complete')">Download Complete Summary</button>
+                    <button onclick="downloadSummary('simplified')">Download Simplified Summary</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function clearDebtPayoff() {
+            const cardList = document.getElementById('card-list');
+            cardList.innerHTML = `
+                <div>
+                    <input type="text" placeholder="Card Name">
+                    <input type="number" placeholder="Balance ($)" min="0" step="0.01" class="card-balance">
+                    <input type="number" placeholder="APR (%)" min="0" step="0.01" class="card-apr">
+                    <input type="number" placeholder="Minimum Payment ($)" min="0" step="0.01" class="card-min-payment">
+                    <button onclick="removeCard(this)">Remove</button>
+                </div>
+            `;
+            document.getElementById('monthly-budget').value = '';
+            document.getElementById('payoff-summary').classList.remove('active');
+            document.getElementById('payoff-details').innerHTML = 'Payoff summary will appear here.';
+        }
+
+        function addCard() {
+            const cardList = document.getElementById('card-list');
+            const card = document.createElement('div');
+            card.innerHTML = `
+                <input type="text" placeholder="Card Name">
+                <input type="number" placeholder="Balance ($)" min="0" step="0.01" class="card-balance">
+                <input type="number" placeholder="APR (%)" min="0" step="0.01" class="card-apr">
+                <input type="number" placeholder="Minimum Payment ($)" min="0" step="0.01" class="card-min-payment">
+                <button onclick="removeCard(this)">Remove</button>
+            `;
+            cardList.appendChild(card);
+        }
+
+        function removeCard(button) {
+            const cardList = document.getElementById('card-list');
+            if (cardList.children.length > 1) {
+                button.parentElement.remove();
+            }
+        }
+
+        function calculatePayoff() {
+            const monthlyBudget = parseFloat(document.getElementById('monthly-budget').value) || 0;
+            const cards = Array.from(document.querySelectorAll('#card-list > div')).map(div => ({
+                name: div.children[0].value || 'Card',
+                balance: parseFloat(div.children[1].value) || 0,
+                apr: parseFloat(div.children[2].value) || 0,
+                minPayment: parseFloat(div.children[3].value) || 0
+            }));
+
+            cards.sort((a, b) => a.balance - b.balance);
+
+            let remainingBudget = monthlyBudget;
+            let months = 0;
+            let summary = '';
+            const debts = [...cards];
+
+            while (debts.length > 0 && remainingBudget > 0) {
+                let totalMinPayments = debts.reduce((sum, debt) => sum + debt.minPayment, 0);
+                if (remainingBudget < totalMinPayments) {
+                    summary += '<p>Monthly budget insufficient for minimum payments.</p>';
+                    break;
+                }
+                let extra = remainingBudget - totalMinPayments;
+                debts[0].balance -= (debts[0].minPayment + extra);
+                if (debts[0].balance <= 0) {
+                    summary += `<p>${debts[0].name} paid off in month ${months + 1} .</p>`;
+                    debts.shift();
+                } else {
+                    debts[0].balance += debts[0].balance * (debts[0].apr / 100 / 12);
+                }
+                months++;
+                if (months > 1200) break;
+            }
+
+            document.getElementById('payoff-details').innerHTML = summary || 'All debts paid off!';
+            document.getElementById('payoff-summary').classList.add('active');
+
+            window.completeSummary = summary.replace(/<[^>]+>/g, '\n').trim();
+            window.simplifiedSummary = summary.replace(/<[^>]+>/g, '\n').trim();
+        }
+
+        function downloadSummary(type) {
+            const content = type === 'complete' ? window.completeSummary : window.simplifiedSummary;
+            if (!content) {
+                alert('Please calculate the payoff first.');
+                return;
+            }
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `credit_card_payoff_${type}_summary.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
