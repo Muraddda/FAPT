@@ -88,6 +88,39 @@ test("amortization formula: $5,000 at 20% with $300 a month pays off in month ce
 
   assert.equal(result.ok, true);
   assert.equal(result.months, Math.ceil(n));
+
+  // ---- Final payment ----
+  // The last month pays whatever is left: the previous end balance plus that
+  // month's interest. This must hold exactly, to the cent.
+  const N = Math.ceil(n); // 20
+  const lastRow = result.schedule[N - 1];
+  const rowBefore = result.schedule[N - 2];
+  const finalPaymentCents = lastRow.cards[0].paymentCents;
+  assert.equal(finalPaymentCents, rowBefore.cards[0].endBalanceCents + lastRow.cards[0].interestCents);
+
+  // Independent check with the closed-form remaining-balance formula.
+  // After k payments of P, the exact (unrounded) balance is:
+  //   B_k = B(1+r)^k - P((1+r)^k - 1) / r
+  // The final payment is the balance after N-1 payments plus one month of interest:
+  //   expected final payment = B_(N-1) * (1+r)   (about 20681.41 cents here)
+  const growth = (1 + r) ** (N - 1);
+  const balanceBeforeLastMonth = balanceCents * growth - (paymentCents * (growth - 1)) / r;
+  const expectedFinalPaymentCents = balanceBeforeLastMonth * (1 + r);
+
+  // How far apart can the engine and the formula honestly be?
+  // The engine rounds the interest to a whole cent every month, so each month
+  // it can be off by at most half a cent. A half cent left in the balance
+  // then earns interest too, growing by (1+r) each later month. Adding up the
+  // worst case over all N roundings (including the final month's own interest):
+  //   0.5 * (1 + (1+r) + (1+r)^2 + ... + (1+r)^(N-1)) = 0.5 * ((1+r)^N - 1) / r
+  // That is about 11.75 cents here. Any bigger gap means the math is wrong.
+  const toleranceCents = (0.5 * ((1 + r) ** N - 1)) / r;
+  const gapCents = Math.abs(finalPaymentCents - expectedFinalPaymentCents);
+  assert.ok(
+    gapCents <= toleranceCents,
+    `final payment ${finalPaymentCents} vs formula ${expectedFinalPaymentCents.toFixed(2)}: ` +
+      `off by ${gapCents.toFixed(2)} cents, allowed ${toleranceCents.toFixed(2)}`
+  );
 });
 
 test("invariants hold on three cards for both avalanche and snowball", () => {
