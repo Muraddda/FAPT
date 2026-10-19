@@ -81,6 +81,7 @@
             gap: 8px;
             margin-bottom: 16px;
             flex-wrap: wrap;
+            align-items: flex-start;
         }
 
         .card-list input, .card-list button {
@@ -248,6 +249,111 @@
                 left: 12px;
             }
         }
+
+        .field-error {
+            color: #D9363E;
+            font-size: 13px;
+            line-height: 1.3;
+            margin: 4px 0 0 0;
+            overflow-wrap: anywhere;
+        }
+
+        .field-error:empty {
+            display: none;
+        }
+
+        .card-list .field {
+            flex: 1;
+            min-width: 120px;
+            max-width: 100%;
+        }
+
+        /* .download-buttons sets display:flex, which would show this anyway. */
+        .download-buttons[hidden] {
+            display: none;
+        }
+
+        .card-names,
+        .savings-line,
+        .estimate-note {
+            overflow-wrap: anywhere;
+        }
+
+        .card-names {
+            margin-bottom: 12px;
+        }
+
+        .strategy-compare {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .strategy-result {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid rgba(0, 89, 102, 0.25);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(245, 246, 245, 0.7);
+        }
+
+        .strategy-result.is-cheaper {
+            border: 2px solid #00897B;
+            background: rgba(0, 137, 123, 0.12);
+        }
+
+        .strategy-result h3 {
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .strategy-description {
+            font-size: 14px;
+            color: #555555;
+        }
+
+        .strategy-result p {
+            margin: 0 0 6px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .strategy-result p:last-child {
+            margin-bottom: 0;
+        }
+
+        .savings-line {
+            margin-top: 14px;
+            font-weight: 600;
+            color: #005566;
+            text-align: center;
+        }
+
+        .estimate-note {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #555555;
+            text-align: center;
+        }
+
+        .payoff-message {
+            margin-top: 8px;
+        }
+
+        @media (max-width: 414px) {
+            .card-list > div {
+                align-items: stretch;
+            }
+
+            .card-list .field {
+                min-width: 0;
+                max-width: 100%;
+            }
+
+            .strategy-compare {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -256,125 +362,49 @@
         <div class="tab-content" id="debt-payoff">
             <h2>Credit Card Payoff Calculator</h2>
             <div class="section card-list" id="card-list">
-                <div>
-                    <input type="text" placeholder="Card Name">
-                    <input type="number" placeholder="Balance ($)" min="0" step="0.01" class="card-balance">
-                    <input type="number" placeholder="APR (%)" min="0" step="0.01" class="card-apr">
-                    <input type="number" placeholder="Minimum Payment ($)" min="0" step="0.01" class="card-min-payment">
-                    <button onclick="removeCard(this)">Remove</button>
+                <div class="card-row">
+                    <div class="field">
+                        <input type="text" placeholder="Card Name" class="card-name">
+                        <p class="field-error"></p>
+                    </div>
+                    <div class="field">
+                        <input type="text" inputmode="decimal" placeholder="Balance ($)" class="card-balance">
+                        <p class="field-error"></p>
+                    </div>
+                    <div class="field">
+                        <input type="text" inputmode="decimal" placeholder="APR (%)" class="card-apr">
+                        <p class="field-error"></p>
+                    </div>
+                    <div class="field">
+                        <input type="text" inputmode="decimal" placeholder="Minimum Payment ($)" class="card-min-payment">
+                        <p class="field-error"></p>
+                    </div>
+                    <button type="button" class="remove-card">Remove</button>
+                </div>
+                <p class="field-error" id="cards-error"></p>
+            </div>
+            <button type="button" id="add-card">Add a Card</button>
+            <div class="section">
+                <label for="monthly-budget">Monthly Budget ($)</label>
+                <div class="field">
+                    <input type="text" inputmode="decimal" id="monthly-budget">
+                    <p class="field-error"></p>
                 </div>
             </div>
-            <button onclick="addCard()">Add a Card</button>
-            <div class="section">
-                <label>Monthly Budget ($)</label>
-                <input type="number" id="monthly-budget" min="0" step="0.01">
-            </div>
-            <button onclick="calculatePayoff()">Calculate</button>
+            <button type="button" id="calculate">Calculate</button>
             <div class="section results" id="payoff-summary">
                 <h3>Payoff Summary</h3>
                 <div id="payoff-details">
                     Payoff summary will appear here.
                 </div>
-                <div class="download-buttons">
-                    <button onclick="downloadSummary('complete')">Download Complete Summary</button>
-                    <button onclick="downloadSummary('simplified')">Download Simplified Summary</button>
+                <!-- Downloads return in a later PR. -->
+                <div class="download-buttons" hidden>
+                    <button type="button">Download Complete Summary</button>
+                    <button type="button">Download Simplified Summary</button>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        function clearDebtPayoff() {
-            const cardList = document.getElementById('card-list');
-            cardList.innerHTML = `
-                <div>
-                    <input type="text" placeholder="Card Name">
-                    <input type="number" placeholder="Balance ($)" min="0" step="0.01" class="card-balance">
-                    <input type="number" placeholder="APR (%)" min="0" step="0.01" class="card-apr">
-                    <input type="number" placeholder="Minimum Payment ($)" min="0" step="0.01" class="card-min-payment">
-                    <button onclick="removeCard(this)">Remove</button>
-                </div>
-            `;
-            document.getElementById('monthly-budget').value = '';
-            document.getElementById('payoff-summary').classList.remove('active');
-            document.getElementById('payoff-details').innerHTML = 'Payoff summary will appear here.';
-        }
-
-        function addCard() {
-            const cardList = document.getElementById('card-list');
-            const card = document.createElement('div');
-            card.innerHTML = `
-                <input type="text" placeholder="Card Name">
-                <input type="number" placeholder="Balance ($)" min="0" step="0.01" class="card-balance">
-                <input type="number" placeholder="APR (%)" min="0" step="0.01" class="card-apr">
-                <input type="number" placeholder="Minimum Payment ($)" min="0" step="0.01" class="card-min-payment">
-                <button onclick="removeCard(this)">Remove</button>
-            `;
-            cardList.appendChild(card);
-        }
-
-        function removeCard(button) {
-            const cardList = document.getElementById('card-list');
-            if (cardList.children.length > 1) {
-                button.parentElement.remove();
-            }
-        }
-
-        function calculatePayoff() {
-            const monthlyBudget = parseFloat(document.getElementById('monthly-budget').value) || 0;
-            const cards = Array.from(document.querySelectorAll('#card-list > div')).map(div => ({
-                name: div.children[0].value || 'Card',
-                balance: parseFloat(div.children[1].value) || 0,
-                apr: parseFloat(div.children[2].value) || 0,
-                minPayment: parseFloat(div.children[3].value) || 0
-            }));
-
-            cards.sort((a, b) => a.balance - b.balance);
-
-            let remainingBudget = monthlyBudget;
-            let months = 0;
-            let summary = '';
-            const debts = [...cards];
-
-            while (debts.length > 0 && remainingBudget > 0) {
-                let totalMinPayments = debts.reduce((sum, debt) => sum + debt.minPayment, 0);
-                if (remainingBudget < totalMinPayments) {
-                    summary += '<p>Monthly budget insufficient for minimum payments.</p>';
-                    break;
-                }
-                let extra = remainingBudget - totalMinPayments;
-                debts[0].balance -= (debts[0].minPayment + extra);
-                if (debts[0].balance <= 0) {
-                    summary += `<p>${debts[0].name} paid off in month ${months + 1} .</p>`;
-                    debts.shift();
-                } else {
-                    debts[0].balance += debts[0].balance * (debts[0].apr / 100 / 12);
-                }
-                months++;
-                if (months > 1200) break;
-            }
-
-            document.getElementById('payoff-details').innerHTML = summary || 'All debts paid off!';
-            document.getElementById('payoff-summary').classList.add('active');
-
-            window.completeSummary = summary.replace(/<[^>]+>/g, '\n').trim();
-            window.simplifiedSummary = summary.replace(/<[^>]+>/g, '\n').trim();
-        }
-
-        function downloadSummary(type) {
-            const content = type === 'complete' ? window.completeSummary : window.simplifiedSummary;
-            if (!content) {
-                alert('Please calculate the payoff first.');
-                return;
-            }
-
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `credit_card_payoff_${type}_summary.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    </script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
