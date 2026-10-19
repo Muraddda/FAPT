@@ -299,7 +299,68 @@ function strategyBlock(strategy, result, highlight) {
   block.appendChild(textLine("Months to payoff: " + result.months));
   block.appendChild(textLine("Total interest: " + formatDollars(result.totalInterestCents)));
   block.appendChild(textLine("Total paid: " + formatDollars(result.totalPaidCents)));
+  block.appendChild(scheduleDetails(result.schedule));
   return block;
+}
+
+function scheduleDetails(schedule) {
+  const details = document.createElement("details");
+  details.className = "schedule";
+
+  const summary = document.createElement("summary");
+  summary.textContent = "Show monthly schedule";
+  details.appendChild(summary);
+
+  const scroller = document.createElement("div");
+  scroller.className = "schedule-scroll";
+  scroller.appendChild(scheduleTable(schedule));
+  details.appendChild(scroller);
+  return details;
+}
+
+function scheduleTable(schedule) {
+  const table = document.createElement("table");
+  if (schedule.length === 0) {
+    return table;
+  }
+
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headRow.appendChild(headerCell("Month"));
+  for (const card of schedule[0].cards) {
+    headRow.appendChild(headerCell(card.name + " payment"));
+    headRow.appendChild(headerCell(card.name + " interest"));
+    headRow.appendChild(headerCell(card.name + " end balance"));
+  }
+  head.appendChild(headRow);
+  table.appendChild(head);
+
+  const body = document.createElement("tbody");
+  for (const monthRow of schedule) {
+    const row = document.createElement("tr");
+    row.appendChild(bodyCell(String(monthRow.month)));
+    for (const card of monthRow.cards) {
+      row.appendChild(bodyCell(formatDollars(card.paymentCents)));
+      row.appendChild(bodyCell(formatDollars(card.interestCents)));
+      row.appendChild(bodyCell(formatDollars(card.endBalanceCents)));
+    }
+    body.appendChild(row);
+  }
+  table.appendChild(body);
+  return table;
+}
+
+function headerCell(text) {
+  const cell = document.createElement("th");
+  cell.scope = "col";
+  cell.textContent = text;
+  return cell;
+}
+
+function bodyCell(text) {
+  const cell = document.createElement("td");
+  cell.textContent = text;
+  return cell;
 }
 
 function textLine(text) {
