@@ -47,7 +47,7 @@
 
         .tool-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 16px;
             justify-items: center;
         }
@@ -78,6 +78,26 @@
             color: #005566;
         }
 
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #005566;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        ul {
+            list-style: none;
+            text-align: center;
+        }
+
+        li {
+            font-size: 16px;
+            color: #555555;
+            padding: 6px 0;
+        }
+
         @media (max-width: 414px) {
             .container {
                 padding: 24px;
@@ -102,22 +122,17 @@
     <div class="container">
         <h1>Financial Tools</h1>
         <div class="tool-grid">
-            <a href="dca-cal.html" class="tool-card">
-                <h3>DCA Calculator</h3>
-            </a>
-            <a href="budget-planner.html" class="tool-card">
-                <h3>Budget Planner</h3>
-            </a>
-            <a href="tax-estimator.html" class="tool-card">
-                <h3>Income Tax Estimator</h3>
-            </a>
             <a href="debt-repayment-cal.html" class="tool-card">
                 <h3>Credit Card Payoff</h3>
             </a>
-            <a href="compound-cal.html" class="tool-card">
-                <h3>Compounding Wealth</h3>
-            </a>
         </div>
+        <h2>Coming soon</h2>
+        <ul>
+            <li>DCA Calculator</li>
+            <li>Budget Planner</li>
+            <li>Income Tax Estimator</li>
+            <li>Compounding Wealth</li>
+        </ul>
     </div>
 </body>
 </html>
