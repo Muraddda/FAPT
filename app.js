@@ -270,7 +270,7 @@ function cardNamesLine(cards) {
   }
   const line = document.createElement("p");
   line.className = "card-names";
-  // textContent, not innerHTML: the name is whatever the user typed.
+  // The name is whatever the user typed, so keep it as text.
   line.textContent = "Cards: " + names.join(", ");
   return line;
 }
