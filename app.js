@@ -27,17 +27,23 @@ function start() {
   }
 }
 
+// The first card row is written in the HTML as card number 1.
+let nextCardNumber = 2;
+
 function addCard() {
   document.getElementById("card-list").appendChild(createCardRow());
 }
 
 function createCardRow() {
+  const rowNumber = nextCardNumber;
+  nextCardNumber = nextCardNumber + 1;
+
   const row = document.createElement("div");
   row.className = "card-row";
-  row.appendChild(createField("Card Name", "card-name", false));
-  row.appendChild(createField("Balance ($)", "card-balance", true));
-  row.appendChild(createField("APR (%)", "card-apr", true));
-  row.appendChild(createField("Minimum Payment ($)", "card-min-payment", true));
+  row.appendChild(createField("Card Name", "card-name", false, "card-name-" + rowNumber));
+  row.appendChild(createField("Balance ($)", "card-balance", true, "card-balance-" + rowNumber));
+  row.appendChild(createField("APR (%)", "card-apr", true, "card-apr-" + rowNumber));
+  row.appendChild(createField("Minimum Payment ($)", "card-min-payment", true, "card-min-payment-" + rowNumber));
 
   const removeButton = document.createElement("button");
   removeButton.type = "button";
@@ -51,13 +57,18 @@ function createCardRow() {
 }
 
 // decimal is true for money and APR fields, so phones show a number keyboard.
-function createField(placeholder, className, decimal) {
+function createField(labelText, className, decimal, inputId) {
   const field = document.createElement("div");
   field.className = "field";
 
+  const label = document.createElement("label");
+  label.htmlFor = inputId;
+  label.textContent = labelText;
+
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = placeholder;
+  input.id = inputId;
+  input.placeholder = labelText;
   input.className = className;
   if (decimal) {
     input.inputMode = "decimal";
@@ -65,7 +76,9 @@ function createField(placeholder, className, decimal) {
 
   const error = document.createElement("p");
   error.className = "field-error";
+  error.id = inputId + "-error";
 
+  field.appendChild(label);
   field.appendChild(input);
   field.appendChild(error);
   return field;
@@ -119,11 +132,19 @@ function clearErrors() {
   for (const error of errors) {
     error.textContent = "";
   }
+
+  const inputs = document.querySelectorAll("#card-list input, #monthly-budget");
+  for (const input of inputs) {
+    input.removeAttribute("aria-invalid");
+    input.removeAttribute("aria-describedby");
+  }
 }
 
 function showFieldError(input, message) {
   const error = input.parentElement.querySelector(".field-error");
   error.textContent = message;
+  input.setAttribute("aria-invalid", "true");
+  input.setAttribute("aria-describedby", error.id);
 }
 
 function readCards() {
