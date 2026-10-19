@@ -32,15 +32,13 @@
             max-width: 600px;
             width: 100%;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            position: relative;
             overflow-y: auto;
             max-height: 100vh;
         }
 
         .back-link {
-            position: absolute;
-            top: 16px;
-            left: 16px;
+            display: inline-block;
+            margin-bottom: 8px;
             font-size: 14px;
             font-weight: 500;
             color: #00897B;
@@ -169,22 +167,6 @@
             box-shadow: none;
         }
 
-        .download-buttons {
-            display: flex;
-            gap: 16px;
-            margin-top: 16px;
-        }
-
-        .download-buttons button {
-            flex: 1;
-            padding: 10px;
-            font-size: 15px;
-            background: linear-gradient(180deg, #00897B 0%, #006B5F 100%);
-            min-height: 44px;
-            line-height: 44px;
-            touch-action: manipulation;
-        }
-
         .results {
             margin-top: 16px;
             text-align: center;
@@ -223,11 +205,6 @@
                 min-width: 100%;
             }
 
-            .download-buttons {
-                flex-direction: column;
-                gap: 12px;
-            }
-
             button {
                 font-size: 16px;
                 padding: 12px;
@@ -241,12 +218,6 @@
             input[type="text"], input[type="number"] {
                 padding: 10px 12px;
                 font-size: 14px;
-            }
-
-            .back-link {
-                font-size: 12px;
-                top: 12px;
-                left: 12px;
             }
         }
 
@@ -266,11 +237,6 @@
             flex: 1;
             min-width: 120px;
             max-width: 100%;
-        }
-
-        /* .download-buttons sets display:flex, which would show this anyway. */
-        .download-buttons[hidden] {
-            display: none;
         }
 
         .card-names,
@@ -340,6 +306,36 @@
             margin-top: 8px;
         }
 
+        .schedule {
+            margin-top: 10px;
+        }
+
+        .schedule summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #005566;
+        }
+
+        .schedule-scroll {
+            overflow-x: auto;
+            max-width: 100%;
+            margin-top: 8px;
+        }
+
+        .schedule table {
+            border-collapse: collapse;
+            width: max-content;
+            font-size: 13px;
+        }
+
+        .schedule th,
+        .schedule td {
+            border: 1px solid rgba(0, 89, 102, 0.25);
+            padding: 4px 8px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
         @media (max-width: 414px) {
             .card-list > div {
                 align-items: stretch;
@@ -364,20 +360,24 @@
             <div class="section card-list" id="card-list">
                 <div class="card-row">
                     <div class="field">
-                        <input type="text" placeholder="Card Name" class="card-name">
-                        <p class="field-error"></p>
+                        <label for="card-name-1">Card Name</label>
+                        <input type="text" id="card-name-1" placeholder="Card Name" class="card-name">
+                        <p class="field-error" id="card-name-1-error"></p>
                     </div>
                     <div class="field">
-                        <input type="text" inputmode="decimal" placeholder="Balance ($)" class="card-balance">
-                        <p class="field-error"></p>
+                        <label for="card-balance-1">Balance ($)</label>
+                        <input type="text" id="card-balance-1" inputmode="decimal" placeholder="Balance ($)" class="card-balance">
+                        <p class="field-error" id="card-balance-1-error"></p>
                     </div>
                     <div class="field">
-                        <input type="text" inputmode="decimal" placeholder="APR (%)" class="card-apr">
-                        <p class="field-error"></p>
+                        <label for="card-apr-1">APR (%)</label>
+                        <input type="text" id="card-apr-1" inputmode="decimal" placeholder="APR (%)" class="card-apr">
+                        <p class="field-error" id="card-apr-1-error"></p>
                     </div>
                     <div class="field">
-                        <input type="text" inputmode="decimal" placeholder="Minimum Payment ($)" class="card-min-payment">
-                        <p class="field-error"></p>
+                        <label for="card-min-payment-1">Minimum Payment ($)</label>
+                        <input type="text" id="card-min-payment-1" inputmode="decimal" placeholder="Minimum Payment ($)" class="card-min-payment">
+                        <p class="field-error" id="card-min-payment-1-error"></p>
                     </div>
                     <button type="button" class="remove-card">Remove</button>
                 </div>
@@ -388,7 +388,7 @@
                 <label for="monthly-budget">Monthly Budget ($)</label>
                 <div class="field">
                     <input type="text" inputmode="decimal" id="monthly-budget">
-                    <p class="field-error"></p>
+                    <p class="field-error" id="monthly-budget-error"></p>
                 </div>
             </div>
             <button type="button" id="calculate">Calculate</button>
@@ -396,11 +396,6 @@
                 <h3>Payoff Summary</h3>
                 <div id="payoff-details">
                     Payoff summary will appear here.
-                </div>
-                <!-- Downloads return in a later PR. -->
-                <div class="download-buttons" hidden>
-                    <button type="button">Download Complete Summary</button>
-                    <button type="button">Download Simplified Summary</button>
                 </div>
             </div>
         </div>

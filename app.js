@@ -27,17 +27,23 @@ function start() {
   }
 }
 
+// The first card row is written in the HTML as card number 1.
+let nextCardNumber = 2;
+
 function addCard() {
   document.getElementById("card-list").appendChild(createCardRow());
 }
 
 function createCardRow() {
+  const rowNumber = nextCardNumber;
+  nextCardNumber = nextCardNumber + 1;
+
   const row = document.createElement("div");
   row.className = "card-row";
-  row.appendChild(createField("Card Name", "card-name", false));
-  row.appendChild(createField("Balance ($)", "card-balance", true));
-  row.appendChild(createField("APR (%)", "card-apr", true));
-  row.appendChild(createField("Minimum Payment ($)", "card-min-payment", true));
+  row.appendChild(createField("Card Name", "card-name", false, "card-name-" + rowNumber));
+  row.appendChild(createField("Balance ($)", "card-balance", true, "card-balance-" + rowNumber));
+  row.appendChild(createField("APR (%)", "card-apr", true, "card-apr-" + rowNumber));
+  row.appendChild(createField("Minimum Payment ($)", "card-min-payment", true, "card-min-payment-" + rowNumber));
 
   const removeButton = document.createElement("button");
   removeButton.type = "button";
@@ -51,13 +57,18 @@ function createCardRow() {
 }
 
 // decimal is true for money and APR fields, so phones show a number keyboard.
-function createField(placeholder, className, decimal) {
+function createField(labelText, className, decimal, inputId) {
   const field = document.createElement("div");
   field.className = "field";
 
+  const label = document.createElement("label");
+  label.htmlFor = inputId;
+  label.textContent = labelText;
+
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = placeholder;
+  input.id = inputId;
+  input.placeholder = labelText;
   input.className = className;
   if (decimal) {
     input.inputMode = "decimal";
@@ -65,7 +76,9 @@ function createField(placeholder, className, decimal) {
 
   const error = document.createElement("p");
   error.className = "field-error";
+  error.id = inputId + "-error";
 
+  field.appendChild(label);
   field.appendChild(input);
   field.appendChild(error);
   return field;
@@ -119,11 +132,19 @@ function clearErrors() {
   for (const error of errors) {
     error.textContent = "";
   }
+
+  const inputs = document.querySelectorAll("#card-list input, #monthly-budget");
+  for (const input of inputs) {
+    input.removeAttribute("aria-invalid");
+    input.removeAttribute("aria-describedby");
+  }
 }
 
 function showFieldError(input, message) {
   const error = input.parentElement.querySelector(".field-error");
   error.textContent = message;
+  input.setAttribute("aria-invalid", "true");
+  input.setAttribute("aria-describedby", error.id);
 }
 
 function readCards() {
@@ -249,7 +270,7 @@ function cardNamesLine(cards) {
   }
   const line = document.createElement("p");
   line.className = "card-names";
-  // textContent, not innerHTML: the name is whatever the user typed.
+  // The name is whatever the user typed, so keep it as text.
   line.textContent = "Cards: " + names.join(", ");
   return line;
 }
@@ -278,7 +299,68 @@ function strategyBlock(strategy, result, highlight) {
   block.appendChild(textLine("Months to payoff: " + result.months));
   block.appendChild(textLine("Total interest: " + formatDollars(result.totalInterestCents)));
   block.appendChild(textLine("Total paid: " + formatDollars(result.totalPaidCents)));
+  block.appendChild(scheduleDetails(result.schedule));
   return block;
+}
+
+function scheduleDetails(schedule) {
+  const details = document.createElement("details");
+  details.className = "schedule";
+
+  const summary = document.createElement("summary");
+  summary.textContent = "Show monthly schedule";
+  details.appendChild(summary);
+
+  const scroller = document.createElement("div");
+  scroller.className = "schedule-scroll";
+  scroller.appendChild(scheduleTable(schedule));
+  details.appendChild(scroller);
+  return details;
+}
+
+function scheduleTable(schedule) {
+  const table = document.createElement("table");
+  if (schedule.length === 0) {
+    return table;
+  }
+
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headRow.appendChild(headerCell("Month"));
+  for (const card of schedule[0].cards) {
+    headRow.appendChild(headerCell(card.name + " payment"));
+    headRow.appendChild(headerCell(card.name + " interest"));
+    headRow.appendChild(headerCell(card.name + " end balance"));
+  }
+  head.appendChild(headRow);
+  table.appendChild(head);
+
+  const body = document.createElement("tbody");
+  for (const monthRow of schedule) {
+    const row = document.createElement("tr");
+    row.appendChild(bodyCell(String(monthRow.month)));
+    for (const card of monthRow.cards) {
+      row.appendChild(bodyCell(formatDollars(card.paymentCents)));
+      row.appendChild(bodyCell(formatDollars(card.interestCents)));
+      row.appendChild(bodyCell(formatDollars(card.endBalanceCents)));
+    }
+    body.appendChild(row);
+  }
+  table.appendChild(body);
+  return table;
+}
+
+function headerCell(text) {
+  const cell = document.createElement("th");
+  cell.scope = "col";
+  cell.textContent = text;
+  return cell;
+}
+
+function bodyCell(text) {
+  const cell = document.createElement("td");
+  cell.textContent = text;
+  return cell;
 }
 
 function textLine(text) {
